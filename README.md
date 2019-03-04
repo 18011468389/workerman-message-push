@@ -12,7 +12,7 @@
 ~~~
 
 
-使用说明：
+# 使用说明：
 ~~~
     * 启动后端服务  php push-server.php start -d (-d守护模式启动，调试阶段可不加，方便查看数据)
     * 组装推送数据调用push.php中push_info()方法;
