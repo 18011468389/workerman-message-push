@@ -6,7 +6,7 @@
  * Time: 16:18
  * 服务端异步推送方法,将需要推送的数据组装成数据，调用方法即可
  */
-function push_order_info($data){
+function push_info($data){
     try{
         $client = stream_socket_client('tcp://127.0.0.1:5678', $errno, $errmsg, 1);
         // 推送的数据，包含uid字段，表示是给这个uid推送
