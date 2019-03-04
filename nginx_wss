@@ -1,0 +1,53 @@
+利用nginx/apache代理wss
+除了用Workerman自身的SSL，也可以利用nginx/apache作为wss代理转发给workerman（注意此方法workerman部分千万不要设置ssl，否则将无法连接）。
+通讯原理及流程是：
+1、客户端发起wss连接连到nginx/apache
+2、nginx/apache将wss协议的数据转换成ws协议数据并转发到Workerman的websocket协议端口
+3、Workerman收到数据后做业务逻辑处理
+4、Workerman给客户端发送消息时，则是相反的过程，数据经过nginx/apache转换成wss协议然后发给客户端
+nginx配置参考
+前提条件及准备工作：
+1、已经安装nginx，版本不低于1.3
+2、假设Workerman监听的是8282端口(websocket协议)
+3、已经申请了证书（pem/crt文件及key文件）放在了/etc/nginx/conf.d/ssl下
+4、打算利用nginx开启443端口对外提供wss代理服务（端口可以根据需要修改）
+5、nginx一般作为网站服务器运行着其它服务，为了不影响原来的站点使用，这里使用地址 域名/wss 作为wss的代理入口。也就是客户端连接地址为 wss://域名/wss
+nginx配置类似如下：
+server {
+  listen 443;
+
+  ssl on;
+  ssl_certificate /etc/ssl/server.pem;
+  ssl_certificate_key /etc/ssl/server.key;
+  ssl_session_timeout 5m;
+  ssl_session_cache shared:SSL:50m;
+  ssl_protocols SSLv3 SSLv2 TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP;
+
+  //加入如下配置
+  location /wss
+  {
+    proxy_pass http://127.0.0.1:8282;
+    #端口号根据业务设置，不被占用就好
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+  //配置结束
+
+  # location / {} 站点的其它配置...
+}
+
+测试
+// 证书是会检查域名的，请使用域名连接
+ws = new WebSocket("wss://域名/wss");
+
+ws.onopen = function() {
+    alert("连接成功");
+    ws.send('tom');
+    alert("给服务端发送一个字符串：tom");
+};
+ws.onmessage = function(e) {
+    alert("收到服务端的消息：" + e.data);
+};
